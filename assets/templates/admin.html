@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Identificador de Placas - Administración</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Open Sans', 'Noto Sans JP', sans-serif; background-color: #f8f9fe; color: #525f7f; }
+        .argon-header {
+            background: linear-gradient(87deg, #11cdef 0, #1171ef 100%) !important;
+            padding-bottom: 6rem; padding-top: 2rem;
+        }
+        .card-argon {
+            border: 0; border-radius: 1rem;
+            box-shadow: 0 0 2rem 0 rgba(136, 152, 170, .15); background: #fff;
+        }
+        .main-content { margin-top: -4.5rem; }
+        .placa-badge {
+            display: inline-block; font-weight: 800;
+            padding: 5px 14px; border-radius: 6px;
+            font-family: monospace; font-size: 1.15rem; letter-spacing: 1px;
+        }
+        .placa-CO { background-color: #ffd600; color: #000; border: 2px solid #000; }
+        .placa-JP { background-color: #ffffff; color: #0b4f26; border: 2px solid #0b4f26; }
+        .placa-US { background-color: #f0f4f8; color: #1a365d; border: 2px solid #2b6cb0; }
+        .pais-subtexto {
+            font-size: 0.8rem; font-weight: 700; color: #6c757d; margin-top: 4px;
+        }
+        .lang-switcher {
+            background: rgba(255, 255, 255, 0.2);
+            color: #fff; border: 1px solid rgba(255, 255, 255, 0.4);
+            border-radius: 0.5rem; padding: 6px 12px; font-weight: 700; cursor: pointer;
+        }
+        .lang-switcher option { color: #000; background: #fff; }
+    </style>
+</head>
+<body>
+
+    <div class="argon-header">
+        <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h2 class="text-white fw-bold mb-0">
+                <i class="fa-solid fa-sliders me-2"></i><span data-i18n="admin_title">Identificador de Placas - Admin</span>
+            </h2>
+            <div class="d-flex align-items-center gap-2">
+                <select id="lang-select" class="lang-switcher" onchange="cambiarIdioma(this.value)">
+                    <option value="es">🇪🇸 Español</option>
+                    <option value="en">🇺🇸 English</option>
+                    <option value="ja">🇯🇵 日本語</option>
+                </select>
+                <a href="/" class="btn btn-light fw-bold shadow-sm">
+                    <i class="fa-solid fa-camera me-1 text-info"></i> <span data-i18n="btn_scanner">Ir al Escáner</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container main-content pb-5">
+        <div class="row g-4">
+            <div class="col-lg-4">
+                <div class="card card-argon p-4">
+                    <h5 class="fw-bold mb-3 text-dark">
+                        <i class="fa-solid fa-plus-circle text-primary me-2"></i><span data-i18n="form_title">Registrar Vehículo</span>
+                    </h5>
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase" data-i18n="lbl_country">País / Formato de Placa</label>
+                            <select name="pais" id="sel-pais" class="form-select fw-bold" onchange="actualizarPlaceholderPais()">
+                                <option value="CO" data-i18n="opt_co">🇨🇴 Colombia (ABC-123)</option>
+                                <option value="JP" data-i18n="opt_jp">🇯🇵 Japón (12-34)</option>
+                                <option value="US" data-i18n="opt_us">🇺🇸 Estados Unidos (7ABC123)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase" data-i18n="lbl_plate">Número de Placa</label>
+                            <input type="text" id="inp-placa" name="numero" class="form-control form-control-lg text-uppercase fw-bold" placeholder="ABC-123" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase" data-i18n="lbl_owner">Propietario / Residente</label>
+                            <input type="text" id="inp-prop" name="propietario" class="form-control" placeholder="Nombre del Propietario" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm" style="background-color: #5e72e4; border: none;">
+                            <i class="fa-solid fa-floppy-disk me-2"></i><span data-i18n="btn_save">Autorizar Placa</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-lg-8">
+                <div class="card card-argon p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0 text-dark">
+                            <i class="fa-solid fa-car-side text-success me-2"></i><span data-i18n="table_title">Placas con Acceso Autorizado</span>
+                        </h5>
+                        <span class="badge bg-primary rounded-pill px-3 py-2">
+                            <span data-i18n="lbl_total">Total</span>: {{ placas|length }}
+                        </span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="text-uppercase small fw-bold">ID</th>
+                                    <th class="text-uppercase small fw-bold" data-i18n="col_plate">Placa / País</th>
+                                    <th class="text-uppercase small fw-bold" data-i18n="col_owner">Propietario</th>
+                                    <th class="text-uppercase small fw-bold text-end" data-i18n="col_action">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for placa in placas %}
+                                <tr>
+                                    <td class="fw-bold text-muted">#{{ placa.id }}</td>
+                                    <td>
+                                        <div class="d-flex flex-column align-items-start">
+                                            <span class="placa-badge placa-{{ placa.pais }}">{{ placa.numero }}</span>
+                                            <div class="pais-subtexto">
+                                                {% if placa.pais == 'CO' %}
+                                                    🇨🇴 <span data-i18n="country_co">Colombia</span>
+                                                {% elif placa.pais == 'JP' %}
+                                                    🇯🇵 <span data-i18n="country_jp">Japón</span>
+                                                {% elif placa.pais == 'US' %}
+                                                    🇺🇸 <span data-i18n="country_us">Estados Unidos</span>
+                                                {% else %}
+                                                    🌍 <span>{{ placa.pais }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="fw-semibold text-dark">{{ placa.propietario }}</td>
+                                    <td class="text-end">
+                                        <a href="/admin/eliminar/{{ placa.id }}" class="btn btn-sm btn-danger fw-bold px-3">
+                                            <i class="fa-solid fa-trash-can me-1"></i> <span data-i18n="btn_delete">Eliminar</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-4" data-i18n="empty_table">
+                                        No hay placas registradas todavía. Agrega una placa usando el formulario.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const traduccionesAdmin = {
+            es: {
+                page_title: "Identificador de Placas - Administración",
+                admin_title: "Identificador de Placas - Admin",
+                btn_scanner: "Ir al Escáner",
+                form_title: "Registrar Vehículo",
+                lbl_country: "País / Formato de Placa",
+                opt_co: "🇨🇴 Colombia (ABC-123)",
+                opt_jp: "🇯🇵 Japón (12-34)",
+                opt_us: "🇺🇸 Estados Unidos (7ABC123)",
+                lbl_plate: "Número de Placa",
+                ph_CO: "ABC-123",
+                ph_JP: "12-34",
+                ph_US: "7ABC123",
+                lbl_owner: "Propietario / Residente",
+                ph_owner: "Nombre del Propietario",
+                btn_save: "Autorizar Placa",
+                table_title: "Placas con Acceso Autorizado",
+                lbl_total: "Total",
+                col_plate: "Placa / País",
+                col_owner: "Propietario",
+                col_action: "Acción",
+                btn_delete: "Eliminar",
+                country_co: "Colombia",
+                country_jp: "Japón",
+                country_us: "Estados Unidos",
+                empty_table: "No hay placas registradas todavía. Agrega una placa usando el formulario."
+            },
+            en: {
+                page_title: "License Plate Identifier - Admin",
+                admin_title: "License Plate Identifier - Admin",
+                btn_scanner: "Go to Scanner",
+                form_title: "Register Vehicle",
+                lbl_country: "Country / Plate Format",
+                opt_co: "🇨🇴 Colombia (ABC-123)",
+                opt_jp: "🇯🇵 Japan (12-34)",
+                opt_us: "🇺🇸 United States (7ABC123)",
+                lbl_plate: "License Plate Number",
+                ph_CO: "ABC-123",
+                ph_JP: "12-34",
+                ph_US: "7ABC123",
+                lbl_owner: "Owner / Resident",
+                ph_owner: "Owner Name",
+                btn_save: "Authorize Plate",
+                table_title: "Authorized License Plates",
+                lbl_total: "Total",
+                col_plate: "Plate / Country",
+                col_owner: "Owner",
+                col_action: "Action",
+                btn_delete: "Delete",
+                country_co: "Colombia",
+                country_jp: "Japan",
+                country_us: "United States",
+                empty_table: "No license plates registered yet. Add a plate using the form."
+            },
+            ja: {
+                page_title: "ナンバープレート識別システム - 管理パネル",
+                admin_title: "ナンバープレート識別システム - 管理",
+                btn_scanner: "スキャナーへ戻る",
+                form_title: "車両登録",
+                lbl_country: "国 / プレート形式",
+                opt_co: "🇨🇴 コロンビア (ABC-123)",
+                opt_jp: "🇯🇵 日本 (12-34)",
+                opt_us: "🇺🇸 アメリカ (7ABC123)",
+                lbl_plate: "ナンバープレート番号",
+                ph_CO: "ABC-123",
+                ph_JP: "12-34",
+                ph_US: "7ABC123",
+                lbl_owner: "所有者 / 居住者名",
+                ph_owner: "所有者名",
+                btn_save: "プレートを承認・登録",
+                table_title: "承認済みナンバープレート一覧",
+                lbl_total: "合計",
+                col_plate: "プレート / 国",
+                col_owner: "所有者",
+                col_action: "操作",
+                btn_delete: "削除",
+                country_co: "コロンビア",
+                country_jp: "日本",
+                country_us: "アメリカ",
+                empty_table: "登録されたプレートはまだありません。フォームから追加してください。"
+            }
+        };
+
+        let idiomaActual = localStorage.getItem('argon_lang') || 'es';
+
+        function actualizarPlaceholderPais() {
+            const pais = document.getElementById('sel-pais').value;
+            document.getElementById('inp-placa').placeholder = traduccionesAdmin[idiomaActual]['ph_' + pais];
+        }
+
+        function cambiarIdioma(lang) {
+            idiomaActual = lang;
+            localStorage.setItem('argon_lang', lang);
+            document.documentElement.lang = lang;
+            document.title = traduccionesAdmin[lang].page_title;
+            document.getElementById('lang-select').value = lang;
+
+            document.querySelectorAll('[data-i18n]').forEach(el => {
+                const key = el.getAttribute('data-i18n');
+                if (traduccionesAdmin[lang][key]) {
+                    el.innerText = traduccionesAdmin[lang][key];
+                }
+            });
+
+            actualizarPlaceholderPais();
+            document.getElementById('inp-prop').placeholder = traduccionesAdmin[lang].ph_owner;
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            cambiarIdioma(idiomaActual);
+        });
+    </script>
+</body>
+</html>
